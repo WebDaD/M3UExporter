@@ -25,12 +25,13 @@ namespace m3uExporter
             else
             {
                 nud_padding.Enabled = true;
+
             }
         }
 
         private void txt_m3uFile_TextChanged(object sender, EventArgs e)
         {
-            List<string> files = readM3U(txt_m3uFile.Text);
+            List<string> files = readM3U(txt_m3uFile.Text); 
             foreach (string f in files)
             {
                 lb_m3u_items.Items.Add(f);
@@ -66,8 +67,8 @@ namespace m3uExporter
             List<string> files = new List<string>();
             string m3upath = Path.GetDirectoryName(m3ufile);
             string line;
-            System.IO.StreamReader file = new System.IO.StreamReader(m3ufile);
-            while ((line = file.ReadLine()) != null)
+            System.IO.StreamReader file = new System.IO.StreamReader(m3ufile, System.Text.Encoding.UTF8);
+            while ((line = file.ReadLine()) != null) 
             {
                 if (line.StartsWith("#")) continue;
                 if (line.Contains("http://")) continue;
@@ -86,16 +87,37 @@ namespace m3uExporter
             pb_progress.Maximum = files.Count;
             pb_progress.Step = 1;
             int now = (int)starting_number;
-            foreach (var item in files)
+            int i;
+            for (i = 0; i < files.Count; i++)
             {
-                string f = item as string;
-                string f_name = Path.GetFileName(f);
-                string new_name = target_folder + "\\" + now.ToString().PadLeft((int)padding, '0') + "_" + f_name;
-                File.Copy(f, new_name);
-                pb_progress.PerformStep();
-                now++;
+                string f = files[i] as string;
+                try
+                {
+                    string f_name = Path.GetFileName(f);
+                    string new_name = target_folder + "\\" + now.ToString().PadLeft((int)padding, '0') + "_" + f_name;
+                    File.Copy(f, new_name);
+                    pb_progress.PerformStep();
+                    now++;
+                }
+                catch (FileNotFoundException)
+                {
+                    DialogResult d = MessageBox.Show("File " + f + " has not been found...", "Error", MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Error);
+                    if (d == System.Windows.Forms.DialogResult.Abort)
+                    {
+                        break;
+                    }
+                    else if (d == System.Windows.Forms.DialogResult.Retry)
+                    {
+                        i--;
+                    }
+                    else //Ignore
+                    {
+                        pb_progress.PerformStep();
+                        now++;
+                    }
+                }
             }
-            MessageBox.Show(files.Count + " Files have been copied.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(i+" of "+files.Count + " Files have been copied.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
             pb_progress.Value = 0;
         }
     }
